@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fortune Murali Park - Guest Request Operations</title>
+  <style>
+    :root {
+      --primary: #0f4c81;
+      --primary-hover: #0a355c;
+      --accent: #c59b27;
+      --bg: #f4f6f9;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      
+      --status-pending: #fef3c7;
+      --status-pending-txt: #b45309;
+      --status-ack: #dbeafe;
+      --status-ack-txt: #1d4ed8;
+      --status-complete: #dcfce7;
+      --status-complete-txt: #15803d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+    /* Login Screen Styling */
+    .login-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(135deg, #0a355c 0%, #0f4c81 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 10000;
+    }
+    .login-card {
+      background: #ffffff; padding: 35px; border-radius: 12px; width: 100%; max-width: 420px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); text-align: center; position: relative;
+    }
+    .logo-container { margin-bottom: 15px; }
+    .logo-img { max-width: 240px; height: auto; display: block; margin: 0 auto; }
+
+    /* Developer Signature Styling */
+    .dev-signature {
+      margin-top: 25px;
+      font-size: 13px;
+      font-family: 'Georgia', serif;
+      font-style: italic;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.05);
+      border-top: 1px solid #f1f5f9;
+      padding-top: 15px;
+    }
+
+    /* Top Navigation Bar */
+    .navbar {
+      background: #ffffff; border-bottom: 2px solid #e2e8f0; padding: 10px 30px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    .brand-nav { display: flex; align-items: center; gap: 15px; }
+    .brand-nav img { height: 40px; width: auto; }
+    .user-profile { display: flex; align-items: center; gap: 12px; }
+    .user-badge { background: #e0f2fe; color: var(--primary); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+
+    /* Main Grid Layout */
+    .container { max-width: 1300px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; gap: 20px; }
+    .main-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card-bg); padding: 22px; border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; text-align: left; }
+    label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: #fff; color: var(--text);
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.15); }
+
+    /* Buttons */
+    .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-success { background: #15803d; color: white; } 
+    .btn-incomplete { background: #ef4444; color: white; } 
+    .btn-incomplete:hover { background: #dc2626; }
+    .btn-danger { background: #7f1d1d; color: white; } 
+    .btn-danger:hover { background: #450a0a; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f8fafc; }
+    .btn-logout { background: #fee2e2; color: #991b1b; border: none; }
+    .btn-logout:hover { background: #fecaca; }
+    .link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: underline; margin-top: 8px; display: inline-block; }
+    .link-btn:hover { color: var(--primary-hover); }
+
+    /* Stats Dashboard */
+    .stats-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 15px; }
+    .stat-box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+    .stat-val { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .stat-lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+
+    /* Table Styling */
+    .table-container { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { background: #f8fafc; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 2; }
+    tr:hover { background: #f1f5f9; }
+
+    /* Status Badges */
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-pending { background: var(--status-pending); color: var(--status-pending-txt); }
+    .badge-ack { background: var(--status-ack); color: var(--status-ack-txt); }
+    .badge-complete { background: var(--status-complete); color: var(--status-complete-txt); }
+
+    /* Pop-up Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .modal-card { background: #ffffff; padding: 25px; border-radius: 12px; width: 90%; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
+    .request-box { background: #f8fafc; border-left: 4px solid var(--primary); padding: 12px; margin: 12px 0; border-radius: 4px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <!-- EMBEDDED FORTUNE LOGO AS BASE64 DATA URI (Works on any machine instantly) -->
+  <script>
+    const FORTUNE_LOGO_DATA = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='60' viewBox='0 0 260 60'><rect width='260' height='60' fill='%23ffffff'/><text x='15' y='38' font-family='Georgia, serif' font-size='24' font-weight='bold' fill='%230f4c81'>FORTUNE</text><text x='15' y='52' font-family='sans-serif' font-size='10' font-weight='600' fill='%23c59b27' letter-spacing='3'>MURALI PARK</text></svg>";
+  </script>
+
+  <!-- 1. LOGIN SCREEN -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="logo-container">
+        <img id="loginLogoImg" src="" alt="Fortune Murali Park Logo" class="logo-img">
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="signInForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Select Department / Role</label>
+          <select id="loginRole" required>
+            <option value="admin">Administrator (All Access)</option>
+            <option value="Front Office (FO)">Front Office (FO)</option>
+            <option value="Housekeeping (HK)">Housekeeping (HK)</option>
+            <option value="Food & Beverage (FNB)">Food & Beverage (FNB)</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 5px; padding: 11px;">Sign In to Console</button>
+      </form>
+
+      <!-- Change Password Form (Hidden by default) -->
+      <form id="changePassForm" onsubmit="handleChangePassword(event)" style="display: none; text-align: left;">
+        <div class="form-group">
+          <label>Select Role to Update</label>
+          <select id="changeRole" onchange="checkAdminResetMode()" required>
+            <option value="admin">Administrator (All Access)</option>
+            <option value="Front Office (FO)">Front Office (FO)</option>
+            <option value="Housekeeping (HK)">Housekeeping (HK)</option>
+            <option value="Food & Beverage (FNB)">Food & Beverage (FNB)</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
+        
+        <div class="form-group" id="currentPassGroup">
+          <label id="currentPassLabel">Current Password *</label>
+          <input type="password" id="currentPassInput" placeholder="Enter current password">
+        </div>
+
+        <div class="form-group" id="adminAuthGroup" style="display: none; background: #fffbeb; padding: 10px; border: 1px dashed #d97706; border-radius: 6px;">
+          <label style="color: #b45309;">Admin Override Authentication *</label>
+          <input type="password" id="adminAuthPass" placeholder="Enter Admin Password to Reset">
+        </div>
+
+        <div class="form-group">
+          <label>New Password *</label>
+          <input type="password" id="newPassInput" placeholder="Enter new password" required>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 5px; padding: 11px;">Update Password</button>
+      </form>
+
+      <!-- Toggle Links -->
+      <div style="margin-top: 12px;">
+        <button type="button" id="togglePassBtn" class="link-btn" onclick="togglePasswordView()">Change Role Password?</button>
+      </div>
+
+      <div class="dev-signature">
+         Developed by Jitendra Kaushal
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MAIN DASHBOARD UI -->
+  <div id="appDashboard" style="display: none;">
+    <nav class="navbar">
+      <div class="brand-nav">
+        <img id="navLogoImg" src="" alt="Fortune Murali Park Logo">
+        <span style="font-weight: 700; color: var(--primary);">Guest Request Operations</span>
+      </div>
+      <div class="user-profile">
+        <button class="btn btn-outline btn-sm" onclick="requestNotificationPermission()">Enable Desktop Alerts</button>
+        <span class="user-badge" id="currentRoleBadge">Admin</span>
+        <button class="btn btn-logout btn-sm" onclick="handleLogout()">Logout</button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="main-grid">
+        <!-- ENTRY FORM -->
+        <div class="card">
+          <div class="card-title">
+            <span>New Request Dispatch</span>
+          </div>
+          <form id="requestForm" onsubmit="submitGuestRequest(event)">
+            <div class="form-group">
+              <label>Room Number *</label>
+              <input type="text" id="roomNumber" placeholder="e.g. 302" required>
+            </div>
+            <div class="form-group">
+              <label>WhatsApp / Phone Number *</label>
+              <input type="tel" id="guestPhone" placeholder="e.g. +91 98765 43210" required>
+            </div>
+            <div class="form-group">
+              <label>Assign To Department *</label>
+              <select id="targetDepartment" required>
+                <option value="Housekeeping (HK)">Housekeeping (HK)</option>
+                <option value="Food & Beverage (FNB)">Food & Beverage (FNB)</option>
+                <option value="Front Office (FO)">Front Office (FO)</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Request Details *</label>
+              <textarea id="guestRequest" rows="3" placeholder="Enter guest details..." required></textarea>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Dispatch Request</button>
+          </form>
+        </div>
+
+        <!-- CONSOLE METRICS -->
+        <div class="card">
+          <div class="card-title">
+            <span>Operations Overview</span>
+            <span style="font-size: 11px; color: #15803d; background: #dcfce7; padding: 2px 8px; border-radius: 10px;">Live Sync Active</span>
+          </div>
+
+          <div class="stats-container">
+            <div class="stat-box">
+              <div class="stat-val" id="statTotal">0</div>
+              <div class="stat-lbl">Console Total</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="statPending" style="color: #b45309;">0</div>
+              <div class="stat-lbl">Pending</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="statCompleted" style="color: #15803d;">0</div>
+              <div class="stat-lbl">Completed</div>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+            <strong>System Filter:</strong> 
+            <span id="roleNotice">Admin view mode: Monitoring all requests across departments (Acknowledge actions restricted to receiver departments).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAILY MASTER LOG TABLE -->
+      <div class="card">
+        <div class="card-title">
+          <span>Master Requests Log</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline btn-sm" onclick="exportLogToCSV()">Export Log (CSV)</button>
+            <button class="btn btn-danger btn-sm" id="clearLogBtn" onclick="clearDailyLog()" style="display: none;">Clear All Logs</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Sent Time</th>
+                <th>Room</th>
+                <th>Phone Number</th>
+                <th>Sent By</th>
+                <th>Assigned Dept</th>
+                <th>Request Details</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="logTableBody">
+              <!-- Dynamic rows via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP MODAL ALERT FOR RECEIVING ASSOCIATES -->
+  <div id="requestModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span class="badge badge-pending" id="modalDepartment">NEW ALERT</span>
+        <span id="modalTime" style="font-size: 12px; color: var(--text-muted);"></span>
+      </div>
+      <div>
+        <h3 style="color: var(--primary); margin-bottom: 6px;">Room: <span id="modalRoom">-</span></h3>
+        <p style="font-size: 13px; color: var(--text-muted);">Phone: <span id="modalPhone">-</span></p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">From: <span id="modalSender" style="font-weight: 600;">-</span></p>
+        <div class="request-box">
+          "<span id="modalMessage">No details</span>"
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button onclick="acknowledgeModalRequest()" class="btn" style="flex: 1;">Acknowledge</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+  <script>
+    let userAccounts = JSON.parse(localStorage.getItem('fortune_user_passwords') || JSON.stringify({
+      'admin': 'Murali@123',
+      'Front Office (FO)': 'Murali@123',
+      'Housekeeping (HK)': 'Murali@123',
+      'Food & Beverage (FNB)': 'Murali@123',
+      'Maintenance': 'Murali@123'
+    }));
+
+    let currentUser = null;
+    let requestLogs = JSON.parse(localStorage.getItem('guest_requests_log') || '[]');
+    let activeModalRequestId = null;
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'guest_requests_log') {
+        const oldLogsLength = requestLogs.length;
+        requestLogs = JSON.parse(event.newValue || '[]');
+        renderLogTable();
+
+        if (requestLogs.length > oldLogsLength && requestLogs.length > 0) {
+          const latestReq = requestLogs[0];
+          // Only trigger popup for the assigned department (Admin does not get operational popups)
+          if (latestReq.department === currentUser) {
+            triggerAssociatePopUp(latestReq);
+          }
+        }
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set embedded logo image sources automatically
+      document.getElementById('loginLogoImg').src = FORTUNE_LOGO_DATA;
+      document.getElementById('navLogoImg').src = FORTUNE_LOGO_DATA;
+
+      document.getElementById('loginPassword').value = '';
+      checkAdminResetMode();
+    });
+
+    function togglePasswordView() {
+      const signInForm = document.getElementById('signInForm');
+      const changePassForm = document.getElementById('changePassForm');
+      const toggleBtn = document.getElementById('togglePassBtn');
+
+      if (signInForm.style.display !== 'none') {
+        signInForm.style.display = 'none';
+        changePassForm.style.display = 'block';
+        toggleBtn.textContent = 'Back to Sign In';
+        checkAdminResetMode();
+      } else {
+        signInForm.style.display = 'block';
+        changePassForm.style.display = 'none';
+        toggleBtn.textContent = 'Change Role Password?';
+        document.getElementById('loginPassword').value = '';
+      }
+    }
+
+    function checkAdminResetMode() {
+      const selectedRole = document.getElementById('changeRole').value;
+      const currentPassGroup = document.getElementById('currentPassGroup');
+      const adminAuthGroup = document.getElementById('adminAuthGroup');
+      const currentPassInput = document.getElementById('currentPassInput');
+      const adminAuthPass = document.getElementById('adminAuthPass');
+
+      if (selectedRole === 'admin') {
+        currentPassGroup.style.display = 'block';
+        adminAuthGroup.style.display = 'none';
+        currentPassInput.required = true;
+        adminAuthPass.required = false;
+      } else {
+        currentPassGroup.style.display = 'none';
+        adminAuthGroup.style.display = 'block';
+        currentPassInput.required = false;
+        adminAuthPass.required = true;
+      }
+    }
+
+    function handleChangePassword(event) {
+      event.preventDefault();
+      const role = document.getElementById('changeRole').value;
+      const newPass = document.getElementById('newPassInput').value;
+
+      if (role === 'admin') {
+        const currentPass = document.getElementById('currentPassInput').value;
+        if (userAccounts['admin'] === currentPass) {
+          userAccounts['admin'] = newPass;
+          localStorage.setItem('fortune_user_passwords', JSON.stringify(userAccounts));
+          alert('Administrator password successfully updated!');
+          resetAndReturnToLogin();
+        } else {
+          alert('Incorrect current admin password entered.');
+        }
+      } else {
+        const adminOverridePass = document.getElementById('adminAuthPass').value;
+        if (userAccounts['admin'] === adminOverridePass) {
+          userAccounts[role] = newPass;
+          localStorage.setItem('fortune_user_passwords', JSON.stringify(userAccounts));
+          alert(`Password for ${role} successfully reset by Administrator!`);
+          resetAndReturnToLogin();
+        } else {
+          alert('Incorrect Administrator password provided for override.');
+        }
+      }
+    }
+
+    function resetAndReturnToLogin() {
+      document.getElementById('currentPassInput').value = '';
+      document.getElementById('adminAuthPass').value = '';
+      document.getElementById('newPassInput').value = '';
+      togglePasswordView();
+      document.getElementById('loginPassword').value = '';
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+      const role = document.getElementById('loginRole').value;
+      const pass = document.getElementById('loginPassword').value;
+
+      if (userAccounts[role] === pass) {
+        currentUser = role;
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appDashboard').style.display = 'block';
+        document.getElementById('currentRoleBadge').textContent = role === 'admin' ? 'System Administrator' : role;
+
+        document.getElementById('clearLogBtn').style.display = (currentUser === 'admin') ? 'inline-block' : 'none';
+        
+        document.getElementById('roleNotice').textContent = (currentUser === 'admin') 
+          ? "Admin Mode: Viewing all tasks across departments. Acknowledgements and task fulfillment are handled exclusively by the receiver departments."
+          : `${currentUser} Mode: Showing requests SENT BY or ASSIGNED TO your department.`;
+
+        requestLogs = JSON.parse(localStorage.getItem('guest_requests_log') || '[]');
+        renderLogTable();
+      } else {
+        alert('Invalid password entered.');
+      }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      document.getElementById('appDashboard').style.display = 'none';
+      document.getElementById('loginOverlay').style.display = 'flex';
+      document.getElementById('loginPassword').value = '';
+    }
+
+    function submitGuestRequest(event) {
+      event.preventDefault();
+      const targetDept = document.getElementById('targetDepartment').value;
+
+      const payload = {
+        id: Date.now(),
+        room: document.getElementById('roomNumber').value,
+        phone: document.getElementById('guestPhone').value,
+        senderDept: currentUser,
+        department: targetDept,
+        message: document.getElementById('guestRequest').value,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        completedTimestamp: null,
+        status: 'Pending'
+      };
+
+      requestLogs.unshift(payload);
+      localStorage.setItem('guest_requests_log', JSON.stringify(requestLogs));
+      
+      document.getElementById('guestRequest').value = '';
+      renderLogTable();
+      
+      // Popup triggers only for the specific receiving department
+      if (currentUser === targetDept) {
+        triggerAssociatePopUp(payload);
+      }
+    }
+
+    function updateStatus(id, newStatus) {
+      const item = requestLogs.find(r => r.id === id);
+      if (item) {
+        // Only allow the assigned department to acknowledge/complete tasks
+        if (currentUser !== 'admin' && currentUser !== item.department) {
+          alert('Only the assigned receiving department can update this request status.');
+          return;
+        }
+
+        item.status = newStatus;
+        if (newStatus === 'Completed') {
+          item.completedTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+          item.completedTimestamp = null;
+        }
+        localStorage.setItem('guest_requests_log', JSON.stringify(requestLogs));
+        renderLogTable();
+      }
+    }
+
+    function deleteRequest(id) {
+      if (currentUser !== 'admin') return;
+      if (confirm('Are you sure you want to delete this guest request record?')) {
+        requestLogs = requestLogs.filter(r => r.id !== id);
+        localStorage.setItem('guest_requests_log', JSON.stringify(requestLogs));
+        renderLogTable();
+      }
+    }
+
+    function renderLogTable() {
+      const tbody = document.getElementById('logTableBody');
+      tbody.innerHTML = '';
+
+      let total = 0, pending = 0, completed = 0;
+
+      const visibleLogs = requestLogs.filter(req => {
+        if (currentUser === 'admin') return true;
+        return (req.senderDept === currentUser || req.department === currentUser);
+      });
+
+      visibleLogs.forEach(r => {
+        total++;
+        if (r.status === 'Pending') pending++;
+        if (r.status === 'Completed') completed++;
+      });
+
+      visibleLogs.forEach(req => {
+        let badgeClass = 'badge-pending';
+        if (req.status === 'Acknowledged') badgeClass = 'badge-ack';
+        if (req.status === 'Completed') badgeClass = 'badge-complete';
+
+        let actionButtons = '';
+        
+        // ONLY the assigned department handles acknowledgements and completion statuses. Admin monitors via view-only access.
+        if (currentUser === req.department && currentUser !== 'admin') {
+          if (req.status !== 'Completed') {
+             if (req.status === 'Pending') {
+               actionButtons += `<button class="btn btn-outline btn-sm" onclick="updateStatus(${req.id}, 'Acknowledged')">Ack</button> `;
+             }
+             actionButtons += `<button class="btn btn-incomplete btn-sm" onclick="updateStatus(${req.id}, 'Completed')">Not Completed</button> `;
+          } else {
+             actionButtons += `<button class="btn btn-success btn-sm" disabled>Completed</button> `;
+          }
+        } else {
+          // For sender departments or Admin, show status info text instead of action buttons
+          if (currentUser === 'admin') {
+            actionButtons += `<span style="font-size: 11px; color: var(--text-muted);">View Only (Receiver Dept Action)</span> `;
+          } else if (currentUser === req.senderDept) {
+            actionButtons += `<span style="font-size: 11px; color: var(--text-muted);">Awaiting Receiver Action</span>`;
+          }
+        }
+
+        if (currentUser === 'admin') {
+          actionButtons += ` <button class="btn btn-danger btn-sm" onclick="deleteRequest(${req.id})">Del</button>`;
+        }
+
+        let statusDisplay = `<span class="badge ${badgeClass}">${req.status}</span>`;
+        if (req.status === 'Completed' && req.completedTimestamp) {
+          statusDisplay += `<div style="font-size: 10px; color: #15803d; margin-top: 3px; font-weight: 600;">Done at: ${req.completedTimestamp}</div>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${req.timestamp}</td>
+          <td><strong>Room ${req.room}</strong></td>
+          <td>${req.phone}</td>
+          <td><span style="color: var(--text-muted); font-size: 12px; font-weight: 600;">${req.senderDept || 'System'}</span></td>
+          <td><strong>${req.department}</strong></td>
+          <td>${req.message}</td>
+          <td>${statusDisplay}</td>
+          <td><div style="display:flex; gap: 4px; align-items: center; flex-wrap: wrap;">${actionButtons}</div></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statCompleted').textContent = completed;
+    }
+
+    function triggerAssociatePopUp(data) {
+      activeModalRequestId = data.id;
+
+      const audio = document.getElementById('alertSound');
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(e => console.log('Audio autoplay blocked by browser policy.'));
+      }
+
+      document.getElementById('modalRoom').textContent = data.room;
+      document.getElementById('modalPhone').textContent = data.phone;
+      document.getElementById('modalSender').textContent = data.senderDept || 'System';
+      document.getElementById('modalDepartment').textContent = data.department;
+      document.getElementById('modalMessage').textContent = data.message;
+      document.getElementById('modalTime').textContent = data.timestamp;
+
+      document.getElementById('requestModal').style.display = 'flex';
+
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const title = `New Request: Room ${data.room}`;
+        const notification = new Notification(title, {
+          body: `From: ${data.senderDept}\nAssigned To: ${data.department}\nDetails: ${data.message}`,
+          requireInteraction: true
+        });
+        notification.onclick = function() { window.focus(); this.close(); };
+      }
+    }
+
+    function acknowledgeModalRequest() {
+      if (activeModalRequestId) updateStatus(activeModalRequestId, 'Acknowledged');
+      document.getElementById('requestModal').style.display = 'none';
+    }
+
+    function requestNotificationPermission() {
+      if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+          if(permission === 'granted') alert('Desktop notifications enabled.');
+        });
+      }
+    }
+
+    function exportLogToCSV() {
+      if (requestLogs.length === 0) return alert('No logs available to export.');
+      let csv = "Time,Room,Phone,Sent By,Assigned Dept,Request,Status,Completed Time\n";
+      requestLogs.forEach(r => {
+        csv += `${r.timestamp},${r.room},${r.phone},"${r.senderDept || ''}","${r.department}","${r.message.replace(/"/g, '""')}",${r.status},${r.completedTimestamp || ''}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Fortune_Murali_Park_Requests_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+    }
+
+    function clearDailyLog() {
+      if (currentUser !== 'admin') return;
+      if (confirm('Clear all logged requests permanently?')) {
+        requestLogs = [];
+        localStorage.removeItem('guest_requests_log');
+        renderLogTable();
+      }
+    }
+  </script>
+</body>
+</html>
